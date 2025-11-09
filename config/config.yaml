@@ -1,0 +1,28 @@
+target_month: 2025-11-01
+input_path: data/input
+output_path: data/output
+preprocessed_path: data/preprocessed
+input_file_name: 2024-11-09~2025-11-09.xlsx
+output_file_name: result_{date}.csv
+preprocessed_file_name: preprocessed_{date}.csv
+sheet_name: '가계부 내역'
+column_names:
+  - 날짜
+  - 시간
+  - 타입
+  - 대분류
+  - 소분류
+  - 내용
+  - 금액
+  - 화폐
+  - 결제수단
+  - 메모
+payment_methods:
+  - Discount Plan
+income_sources:
+  - 급여
+  - 상여금
+  - 사업수입
+  - 부동산
+exclude_large_cat:
+  - 미분류
