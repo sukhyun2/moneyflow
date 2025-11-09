@@ -5,7 +5,7 @@ preprocessed_path: data/preprocessed
 input_file_name: 2024-11-09~2025-11-09.xlsx
 output_file_name: result_{date}.csv
 preprocessed_file_name: preprocessed_{date}.csv
-sheet_name: '가계부 내역'
+sheet_name: 가계부 내역
 column_names:
   - 날짜
   - 시간
