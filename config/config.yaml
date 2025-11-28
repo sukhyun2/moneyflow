@@ -1,10 +1,15 @@
 target_month: 2025-11-01
 input_path: data/input
 output_path: data/output
-preprocessed_path: data/preprocessed
-input_file_name: 2024-11-09~2025-11-09.xlsx
-output_file_name: result_{date}.csv
-preprocessed_file_name: preprocessed_{date}.csv
+temp_path: data/temp
+prepro_path: data/prepro
+input_file_names:
+  - 권석현_2024-11-28~2025-11-28.xlsx
+  - 신지희_2024-11-28~2025-11-28.xlsx
+output_file_name: output_latest.xlsx
+save_temp_file: True
+temp_file_name: temp_{date}.csv
+prepro_file_name: prepro_{date}.csv
 sheet_name: 가계부 내역
 column_names:
   - 날짜
