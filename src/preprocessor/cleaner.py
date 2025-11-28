@@ -4,8 +4,10 @@ DataFrame 데이터 정제 및 전처리 모듈
 
 import pandas as pd
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import os
+import glob
+from pathlib import Path
 
 
 def convert_datetime64_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
@@ -56,6 +58,149 @@ def convert_datetime64_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
     return result_df
 
 
+def save_file(df: pd.DataFrame, config: Dict[str, Any], file_type: str = 'temp') -> bool:
+    """
+    DataFrame을 파일 확장자에 따라 CSV 또는 Excel로 저장합니다.
+
+    Args:
+        df (pd.DataFrame): 저장할 DataFrame
+        config (Dict[str, Any]): 설정 딕셔너리
+        file_type (str): 저장할 파일 타입 ('temp', 'prepro', 'output')
+            - 'temp': temp_path, temp_file_name 설정 사용
+            - 'prepro': preprocessed_path, preprocessed_file_name 설정 사용
+            - 'output': output_path, output_file_name 설정 사용
+
+    Returns:
+        bool: 저장 성공 여부
+
+    Note:
+        파일 확장자에 따라 자동으로 저장 형식 결정:
+        - .csv: CSV 형식으로 저장
+        - .xlsx, .xls: Excel 형식으로 저장
+
+    Example:
+        # 임시 파일로 저장 (CSV)
+        success = save_file(df, config, 'temp')
+
+        # 전처리 파일로 저장 (CSV)
+        success = save_file(df, config, 'prepro')
+
+        # 최종 출력 파일로 저장 (Excel)
+        success = save_file(df, config, 'output')
+    """
+    try:
+        # 파일 타입에 따른 설정 선택
+        if file_type == 'temp':
+            base_path = config['temp_path']
+            file_name_template = config['temp_file_name']
+            current_date = datetime.now().strftime("%Y%m_%H%M")
+        elif file_type == 'prepro':
+            base_path = config['prepro_path']
+            file_name_template = config['prepro_file_name']
+            current_date = datetime.now().strftime("%Y%m")
+        elif file_type == 'output':
+            base_path = config['output_path']
+            file_name_template = config['output_file_name']
+            current_date = None
+        else:
+            print(f"지원하지 않는 file_type입니다: {file_type}")
+            return False
+
+        # 파일명에서 {date} 치환
+        if current_date:
+            file_name = file_name_template.replace('{date}', current_date)
+        else:
+            file_name = file_name_template
+        file_path = os.path.join(base_path, file_name)
+
+        # 디렉터리가 없으면 생성
+        os.makedirs(base_path, exist_ok=True)
+
+        # 파일 확장자에 따라 저장 방식 결정
+        file_extension = Path(file_path).suffix.lower()
+
+        if file_extension == '.csv':
+            # CSV 파일로 저장
+            df.to_csv(file_path, index=False, encoding='utf-8-sig')
+            print(f'  - CSV 저장 완료: {file_path}')
+        elif file_extension in ['.xlsx', '.xls']:
+            # Excel 파일로 저장
+            df.to_excel(
+                file_path, index=False, engine='openpyxl',
+                header=True, sheet_name='processed_data'
+            )
+            print(f'  - Excel 저장 완료: {file_path}')
+        else:
+            # 기본값: CSV로 저장
+            df.to_csv(file_path, index=False, encoding='utf-8-sig')
+            print(f'  - 기본 CSV 저장 완료: {file_path}')
+
+        print(f'  - 저장된 데이터: {len(df)}행 x {len(df.columns)}열')
+        return True
+
+    except Exception as e:
+        print(f'  X 파일 저장 실패: {e}')
+        raise
+
+
+def read_prepro(config: Dict[str, Any]) -> Optional[pd.DataFrame]:
+    """config의 prepro_path에서 prepro_file_name 패턴에 맞는 모든 CSV 파일을 읽어서 concat합니다."""
+    try:
+        prepro_path = config['prepro_path']
+        prepro_file_pattern = config['prepro_file_name']
+
+        # {date} 패턴을 glob 패턴으로 변경 (예: prepro_*.csv)
+        glob_pattern = prepro_file_pattern.replace('{date}', '*')
+        search_pattern = os.path.join(prepro_path, glob_pattern)
+
+        print(f'read_prepro: prepro 파일을 검색합니다.')
+        print(f'  - 검색 경로: {prepro_path}')
+        print(f'  - 파일 패턴: {glob_pattern}')
+
+        # 패턴에 맞는 파일 찾기
+        matching_files = glob.glob(search_pattern)
+        matching_files.sort()  # 파일명 순으로 정렬
+
+        if not matching_files:
+            print(f'  - 매칭되는 파일이 없습니다: {search_pattern}')
+            return None
+
+        print(f'  - 찾은 파일 수: {len(matching_files)}개')
+
+        # 각 파일을 DataFrame으로 읽기
+        dataframes = []
+        for file_path in matching_files:
+            file_name = os.path.basename(file_path)
+            print(f'  - 파일 읽는 중: {file_name}')
+
+            try:
+                df_temp = pd.read_csv(file_path, encoding='utf-8-sig')
+                dataframes.append(df_temp)
+                print(f'    파일 읽기 성공: {df_temp.shape}')
+            except Exception as e:
+                print(f'    X 파일 읽기 실패 ({file_name}): {e}')
+                continue
+
+        if not dataframes:
+            print(f'  X 읽을 수 있는 파일이 없습니다.')
+            return None
+
+        # 모든 DataFrame을 concat하여 하나로 합치기
+        if len(dataframes) == 1:
+            result_df = dataframes[0]
+            print(f'  - 단일 파일 처리 완료: {result_df.shape}')
+        else:
+            result_df = pd.concat(dataframes, axis=0, ignore_index=True)
+            print(f'  - 다중 파일 병합 완료: {result_df.shape}')
+
+        print(f'read_prepro: prepro 파일 읽기 완료. 총 {len(result_df)}건의 데이터')
+        return result_df
+
+    except Exception as e:
+        print(f'read_prepro: prepro 파일 읽기 중 오류 발생: {e}')
+        raise
+
+
 def clean_data(config: Dict[str, Any]) -> pd.DataFrame:
     """
     Excel 파일을 읽어서 가계부 데이터를 정제하고 필터링한 후 CSV로 저장합니다.
@@ -63,10 +208,10 @@ def clean_data(config: Dict[str, Any]) -> pd.DataFrame:
     Args:
         config (Dict[str, Any]): 설정 딕셔너리 (config.yaml에서 로드)
             - input_path: 입력 파일 경로
-            - input_file_name: 입력 파일명
+            - input_file_names: 입력 파일명 (단일 파일명 문자열 또는 파일명 리스트)
             - sheet_name: Excel 시트명
-            - preprocessed_path: 전처리 파일 저장 경로
-            - preprocessed_file_name: 전처리 파일명 (날짜 치환 지원)
+            - temp_path: 임시 파일 저장 경로
+            - temp_file_name: 임시 파일명 (날짜 치환 지원)
             - output_path: 최종 출력 파일 저장 경로
             - output_file_name: 최종 출력 파일명 (날짜 치환 지원)
             - column_names: 사용할 컬럼명 리스트
@@ -77,6 +222,7 @@ def clean_data(config: Dict[str, Any]) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: 정제되고 필터링된 가계부 데이터
+
 
     Process:
         0. 파일 경로 생성 및 Excel 파일 읽기
@@ -93,18 +239,36 @@ def clean_data(config: Dict[str, Any]) -> pd.DataFrame:
 
     # Step 0: 파일 경로 생성 및 Excel 파일 읽기
     print('clean_data: Excel 파일을 읽어옵니다.')
-    input_file_path = os.path.join(config['input_path'], config['input_file_name'])
+    input_file_names = config['input_file_names']
     sheet_name = config['sheet_name']
 
-    print(f'  - 파일 경로: {input_file_path}')
+    # input_file_names가 단일 파일인지 여러 파일인지 확인
+    if isinstance(input_file_names, str):
+        input_file_names = [input_file_names]  # 단일 파일을 리스트로 변환
+
+    print(f'  - 처리할 파일 수: {len(input_file_names)}개')
     print(f'  - 시트명: {sheet_name}')
 
-    try:
-        df = pd.read_excel(input_file_path, sheet_name=sheet_name)
-        print(f'  - 파일 읽기 성공: {df.shape}')
-    except Exception as e:
-        print(f'  X 파일 읽기 실패: {e}')
-        raise
+    dataframes = []
+    for file_name in input_file_names:
+        input_file_path = os.path.join(config['input_path'], file_name)
+        print(f'  - 파일 경로: {input_file_path}')
+
+        try:
+            df_temp = pd.read_excel(input_file_path, sheet_name=sheet_name)
+            dataframes.append(df_temp)
+            print(f'    파일 읽기 성공: {df_temp.shape}')
+        except Exception as e:
+            print(f'    X 파일 읽기 실패: {e}')
+            raise
+
+    # 모든 DataFrame을 concat하여 하나로 합치기
+    if len(dataframes) == 1:
+        df = dataframes[0]
+        print(f'  - 단일 파일 처리 완료: {df.shape}')
+    else:
+        df = pd.concat(dataframes, axis=0, ignore_index=True)
+        print(f'  - 다중 파일 병합 완료: {df.shape}')
 
     # Step 1: config에서 설정값들 추출
     print('clean_data: config에서 설정값들을 추출합니다.')
@@ -127,15 +291,19 @@ def clean_data(config: Dict[str, Any]) -> pd.DataFrame:
     else:
         target_month_next = target_month_next.replace(month=target_month_next.month + 1)
 
+    # target_month 컬럼을 yyyy-mm 형식으로 추가
+    target_month_yyyy_mm = target_month.strftime('%Y-%m')
+    df['month'] = target_month_yyyy_mm
+
     print(f'  - 분석 기간: {target_month} ~ {target_month_next}')
     print(f'  - 컬럼: {len(column_names)}개')
     print(f'  - 수입원: {income_sources}')
     print(f'  - 결제수단: {payment_methods}')
     print(f'  - 제외 카테고리: {exclude_large_cat}')
 
-    # Step 1: 컬럼 서브셋 생성 - 분석에 필요한 컬럼만 추출
-    print(f'clean_data: raw xlsx을 {column_names} 으로 subset 합니다.')
-    df_clnd = df[column_names]
+    # Step 1: 컬럼 서브셋 생성 - 분석에 필요한 컬럼만 추출 (target_month 컬럼 포함)
+    print(f'clean_data: raw xlsx을 {column_names + ["month"]} 으로 subset 합니다.')
+    df_clnd = df[column_names + ["month"]]
     print(f'  - 원본 {df.shape} - 서브셋 {df_clnd.shape}')
 
     # Step 2: datetime 컬럼을 date 타입으로 변환
@@ -181,24 +349,5 @@ def clean_data(config: Dict[str, Any]) -> pd.DataFrame:
     df_concat = df_concat.reset_index(drop=True)
 
     print(f'clean_data: 최종 정제 완료. 총 {len(df_concat)}건의 데이터')
-
-    # Step 8: 전처리된 데이터를 CSV 파일로 저장
-    print('clean_data: 전처리된 데이터를 CSV 파일로 저장합니다.')
-
-    # preprocessed 파일명에서 {date} 치환
-    current_date = datetime.now().strftime("%Y%m%d_%H%M")
-    preprocessed_file_name = config['preprocessed_file_name'].replace('{date}', current_date)
-    preprocessed_file_path = os.path.join(config['preprocessed_path'], preprocessed_file_name)
-
-    # 디렉터리가 없으면 생성
-    os.makedirs(config['preprocessed_path'], exist_ok=True)
-
-    try:
-        df_concat.to_csv(preprocessed_file_path, index=False, encoding='utf-8-sig')
-        print(f'  - 저장 완료: {preprocessed_file_path}')
-        print(f'  - 저장된 데이터: {len(df_concat)}행 x {len(df_concat.columns)}열')
-    except Exception as e:
-        print(f'  X 파일 저장 실패: {e}')
-        raise
 
     return df_concat
