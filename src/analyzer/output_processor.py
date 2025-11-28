@@ -40,10 +40,7 @@ def add_target_month(df: pd.DataFrame, config) -> pd.DataFrame:
             (df_filtered.index.get_level_values('대분류') != '') &
             (df_filtered.index.get_level_values('소분류') == '')
         ].reset_index()
-        df2 = df2.sort_values(
-            by=['타입', '금액합계'],
-            ascending=[True, False]
-        )
+        df2 = df2.sort_values(by=['타입', '금액합계'], ascending=[True, True])
 
         # 여백을 위한 빈 행 DataFrame 생성 (첫 번째 DF와 같은 컬럼 구조)
         if len(df1) > 0:

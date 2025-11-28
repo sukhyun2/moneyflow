@@ -131,8 +131,8 @@ def create_hierarchical_summary(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # 숫자 포맷팅
-    combined['금액합계'] = combined['금액합계'].apply(lambda x: f"{int(x):,}")
-    combined['거래건수'] = combined['거래건수'].apply(lambda x: f"{x:.1f}")
-    combined['평균금액'] = combined['평균금액'].apply(lambda x: f"{int(x):,}")
+    # combined['금액합계'] = combined['금액합계'].apply(lambda x: f"{int(x):,}")
+    # combined['거래건수'] = combined['거래건수'].apply(lambda x: f"{x:.1f}")
+    # combined['평균금액'] = combined['평균금액'].apply(lambda x: f"{int(x):,}")
 
     return combined
