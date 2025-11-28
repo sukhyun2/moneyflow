@@ -16,7 +16,7 @@ def add_target_month(df: pd.DataFrame, config) -> pd.DataFrame:
     df_filtered = df[df.index.get_level_values('month') == target_month_yyyy_mm]
 
     file_path = config['output_path'] + '/' + config['output_file_name']
-    target_sheet = 'target_month'
+    target_sheet = 'target_month_summary'
 
     # --- 엑셀 파일을 불러오고 target_month 존재 시 삭제 ---
     try:
