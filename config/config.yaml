@@ -9,7 +9,7 @@ prepro_path: data/prepro
 
 # 입력 파일 관련
 input_file_names: # 소득/지출이 포함된 뱅크샐러드 데이터
-  - 권석현_2024-12-14~2025-12-14.xlsx
+  - 권석현_2025-01-03~2026-01-03.xlsx
   - 신지희_2024-12-14~2025-12-14.xlsx
 sheet_name: 가계부 내역 # 뱅크샐러드 데이터내 가게부 내역 시트 이름
 asset_file_name: asset.xlsx # 하드코딩되는 자산 데이터
@@ -39,4 +39,5 @@ exclude_large_cat: # 계산할 때 제외되는 대분류 조건
 output_file_name: output_latest.xlsx # 최종 산출물
 temp_file_name: temp_{date}.csv
 prepro_file_name: prepro_{date}.csv
-save_temp_file: False
+
+# 계좌번호
