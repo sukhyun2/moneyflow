@@ -2,8 +2,10 @@ from src.utils.utils import read_yaml
 from src.preprocessor.cleaner import clean_data, save_file, read_prepro
 from src.analyzer.aggregator import create_hierarchical_summary
 from src.analyzer.output_processor import (
-    add_target_month, process_asset_data,
-    auto_adjust_column_width_to_output, apply_accounting_format_to_output
+    create_summary_by_month, filter_target_month_summary,
+    create_dataframes_with_separators, add_dataframe_to_excel,
+    process_asset_data,
+    auto_adjust_column_width_to_output, apply_accounting_format_to_output, set_font_size_for_output
 )
 
 # Read config
@@ -26,8 +28,15 @@ pdf_agg = create_hierarchical_summary(pdf_prepro) # final output
 save_file(pdf_agg.reset_index(), config, 'output')
 
 # Output data processing (append)
-# target_month에 해당하는 데이터를 필터링하고 최종 파일에 별도 시트로 추가
-add_target_month(pdf_agg, config)
+# target_month와 전월 데이터를 필터링하고 최종 파일에 별도 시트로 추가
+pdf_summ_type_all, pdf_summ_small_all = create_summary_by_month(pdf_agg) # all date
+pdf_summ_type_tar, pdf_summ_small_tar = filter_target_month_summary(pdf_summ_type_all, pdf_summ_small_all, config)
+pdf_tar = create_dataframes_with_separators([pdf_summ_type_tar, pdf_summ_small_tar])
+add_dataframe_to_excel(
+    pdf_tar,
+    config['output_path'] + '/' + config['output_file_name'],
+    sheet_name='target_month_summary'
+)
 
 # Asset data processing (append)
 # 자산 데이터를 불러와 피벗테이블로 변환하고 최종 파일에 별도 시트로 추가
@@ -35,8 +44,6 @@ process_asset_data(config)
 
 # Cleaning format
 # 읽기 편한 형식으로 엑셀 파일 수정
-auto_adjust_column_width_to_output(config)
+set_font_size_for_output(config, 15)
 apply_accounting_format_to_output(config)
-
-print(pdf_agg)
-# 폰트키우기, 소비트렌드, 식비는소분류까지, 마이너스없애기
+auto_adjust_column_width_to_output(config)
