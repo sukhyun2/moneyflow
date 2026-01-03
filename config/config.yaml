@@ -1,5 +1,5 @@
 # 지출/소득 계산을 계산할 일자
-target_month: 2025-11-01
+target_month: 2025-12-01
 
 # 파일 경로
 input_path: data/input
