@@ -3,6 +3,7 @@ from openpyxl import load_workbook
 from datetime import datetime
 
 def add_target_month(df: pd.DataFrame, config) -> pd.DataFrame:
+    """config의 target_month에 해당하는 데이터를 필터링하고 target_month_summary 시트로 저장하는 함수"""
     # config의 target_month(YYYY-MM-DD)를 YYYY-MM 형식으로 변환하여 필터링
     target_month_str = config['target_month']
     if isinstance(target_month_str, str):

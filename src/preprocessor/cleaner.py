@@ -67,7 +67,7 @@ def save_file(df: pd.DataFrame, config: Dict[str, Any], file_type: str = 'temp')
         config (Dict[str, Any]): 설정 딕셔너리
         file_type (str): 저장할 파일 타입 ('temp', 'prepro', 'output')
             - 'temp': temp_path, temp_file_name 설정 사용
-            - 'prepro': preprocessed_path, preprocessed_file_name 설정 사용
+            - 'prepro': prepro_path, prepro_file_name 설정 사용
             - 'output': output_path, output_file_name 설정 사용
 
     Returns:
@@ -88,16 +88,23 @@ def save_file(df: pd.DataFrame, config: Dict[str, Any], file_type: str = 'temp')
         # 최종 출력 파일로 저장 (Excel)
         success = save_file(df, config, 'output')
     """
+    target_month_str = config['target_month'] # yyyy-mm-dd
     try:
         # 파일 타입에 따른 설정 선택
         if file_type == 'temp':
             base_path = config['temp_path']
             file_name_template = config['temp_file_name']
-            current_date = datetime.now().strftime("%Y%m_%H%M")
+            current_date = datetime.now().strftime("%Y%m_%H%M") # yyyymm_hhmm
         elif file_type == 'prepro':
             base_path = config['prepro_path']
             file_name_template = config['prepro_file_name']
-            current_date = datetime.now().strftime("%Y%m")
+            # target_month_str이 이미 datetime.date 객체이므로 바로 포맷팅
+            if isinstance(target_month_str, str):
+                target_date = datetime.strptime(target_month_str, '%Y-%m-%d')
+                current_date = target_date.strftime('%Y%m')
+            else:
+                # 이미 datetime.date 객체인 경우
+                current_date = target_month_str.strftime('%Y%m')
         elif file_type == 'output':
             base_path = config['output_path']
             file_name_template = config['output_file_name']
@@ -222,7 +229,6 @@ def clean_data(config: Dict[str, Any]) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: 정제되고 필터링된 가계부 데이터
-
 
     Process:
         0. 파일 경로 생성 및 Excel 파일 읽기
